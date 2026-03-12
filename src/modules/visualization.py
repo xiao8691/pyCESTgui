@@ -62,6 +62,16 @@ class CESTVisualizer:
         
         if offsets_interp is not None:
             offsets_interp_plot = offsets_interp
+            fixed_curve_colors = {
+                'Water fit': '#1F77B4',
+                'MT fit': '#D62728',
+                'NOE (-3.5 ppm)': '#C2185B',
+                'NOE (-1.6 ppm)': '#E67E22',
+                'Creatine': '#8B5A00',
+                'Amide': '#5E3C99',
+                'Amine': '#00897B',
+                'Hydroxyl': '#2E7D32',
+            }
 
             # 绘制Water + MT拟合
             if water_fit is not None:
@@ -69,25 +79,40 @@ class CESTVisualizer:
                     offsets_interp,
                     water_fit,
                 )
-                ax.plot(offsets_interp_plot, water_fit_plot, 'b--', linewidth=1.5, label='Water fit')
+                ax.plot(
+                    offsets_interp_plot,
+                    water_fit_plot,
+                    '--',
+                    color=fixed_curve_colors['Water fit'],
+                    linewidth=1.8,
+                    label='Water fit',
+                )
             
             if mt_fit is not None:
                 offsets_interp_plot, mt_fit_plot = CESTVisualizer._filter_ppm_range(
                     offsets_interp,
                     mt_fit,
                 )
-                ax.plot(offsets_interp_plot, mt_fit_plot, 'r--', linewidth=1.5, label='MT fit')
+                ax.plot(
+                    offsets_interp_plot,
+                    mt_fit_plot,
+                    '--',
+                    color=fixed_curve_colors['MT fit'],
+                    linewidth=1.8,
+                    label='MT fit',
+                )
             
             # 绘制其他代谢产物
             if fit_curves:
-                colors = plt.cm.Spectral(np.linspace(0, 1, len(fit_curves)))
-                for (contrast_name, curve), color in zip(fit_curves.items(), colors):
+                fallback_colors = plt.cm.tab10(np.linspace(0, 1, max(len(fit_curves), 1)))
+                for index, (contrast_name, curve) in enumerate(fit_curves.items()):
                     offsets_curve, curve_plot = CESTVisualizer._filter_ppm_range(
                         offsets_interp,
                         curve,
                     )
-                    ax.plot(offsets_curve, curve_plot, '--', color=color, 
-                           linewidth=1.5, label=f'{contrast_name}')
+                    line_color = fixed_curve_colors.get(contrast_name, fallback_colors[index])
+                    ax.plot(offsets_curve, curve_plot, '--', color=line_color,
+                           linewidth=1.8, label=f'{contrast_name}')
         
         ax.set_xlabel('Chemical Shift Offset (ppm)', fontsize=11)
         ax.set_ylabel('Normalized Intensity', fontsize=11)

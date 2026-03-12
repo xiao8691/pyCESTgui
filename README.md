@@ -1,7 +1,9 @@
-# CEST图像处理GUI工具
+# Philips CEST图像处理GUI工具
+
+开发者: Xiaoxiao Zhang
 
 ## 简介
-这是一个基于PyQt5的CEST (Chemical Exchange Saturation Transfer) MRI图像处理工具。提供直观的GUI界面，支持完整的CEST数据分析流程。
+这是一个基于PyQt5的 Philips CEST (Chemical Exchange Saturation Transfer) MRI 图像处理工具。提供直观的GUI界面，支持完整的CEST数据分析流程。
 
 ## 主要功能
 

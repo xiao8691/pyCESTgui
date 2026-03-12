@@ -9,6 +9,8 @@ from sklearn.decomposition import PCA
 from scipy import ndimage
 from scipy.optimize import minimize
 
+from .pca_utils import pca_denoising as mp_pca_denoising
+
 
 class Preprocessing:
     """图像预处理类"""
@@ -130,37 +132,59 @@ class Preprocessing:
         return spectrum[..., keep_mask], offsets[keep_mask]
     
     @staticmethod
-    def pca_denoise(data: np.ndarray, n_components: int = None) -> np.ndarray:
+    def pca_denoise(
+        data: np.ndarray,
+        n_components: int = None,
+        patch_radius: int = 1,
+        overcomplete: bool = True,
+    ) -> np.ndarray:
         """
-        使用PCA方法进行降噪
+        使用PCA方法进行降噪。
+
+        当未指定 n_components 时，优先使用局部 MP-PCA，兼容
+        (H, W, T) 和 (H, W, Z, T) 的 CEST 数据；当指定
+        n_components 时，回退到全局 PCA 重构以保持兼容性。
         
         Parameters
         ----------
         data : np.ndarray
             输入数据 (H, W, T) 或 (H, W, Z, T)
         n_components : int, optional
-            PCA保留的主成分数。如果为None，自动选择为数据维度的80%
+            PCA保留的主成分数。如果为None，使用局部MP-PCA降噪
+        patch_radius : int, optional
+            局部MP-PCA的邻域半径，默认值为1
+        overcomplete : bool, optional
+            是否使用重叠块加权重建，默认开启
             
         Returns
         -------
         np.ndarray
             去噪后的数据
         """
+        data = np.asarray(data, dtype=float)
+
+        if n_components is None:
+            denoised, _, _ = mp_pca_denoising(
+                data,
+                ps=patch_radius,
+                overcomplete=overcomplete,
+            )
+            return denoised
+
         original_shape = data.shape
         
         # 展平为(N, T)形式
+        timepoints = data.shape[-1]
+
         if len(data.shape) == 4:
             # 3D数据
-            H, W, Z, T = data.shape
-            data_reshaped = data.reshape(-1, T)
+            data_reshaped = data.reshape(-1, timepoints)
         else:
             # 2D数据
-            H, W, T = data.shape
-            data_reshaped = data.reshape(-1, T)
+            data_reshaped = data.reshape(-1, timepoints)
         
         # 确定PCA成分数
-        if n_components is None:
-            n_components = max(1, int(data_reshaped.shape[1] * 0.8))
+        n_components = max(1, min(int(n_components), data_reshaped.shape[1]))
         
         # 应用PCA
         pca = PCA(n_components=n_components)

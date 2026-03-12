@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QPushButton, QLabel, QLineEdit, QComboBox, QDoubleSpinBox,
     QCheckBox, QMessageBox, QFileDialog, QProgressBar, QTableWidget,
     QTableWidgetItem, QGroupBox, QFormLayout, QListWidget, QListWidgetItem,
-    QSplitter, QFrame, QSlider
+    QSplitter, QFrame, QSlider, QSpinBox
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject
 from PyQt5.QtGui import QIcon, QFont
@@ -83,7 +83,7 @@ class MainWindow(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("CEST图像处理GUI工具 v1.0")
+        self.setWindowTitle("Philips CEST图像处理GUI工具 v1.0 | Developer: Xiaoxiao Zhang")
         self.setGeometry(100, 100, 1400, 900)
         
         # 数据存储
@@ -111,7 +111,10 @@ class MainWindow(QMainWindow):
         # 创建中央widget
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        
+
+        root_layout = QVBoxLayout()
+        root_layout.addWidget(self.create_brand_header())
+
         # 主布局
         main_layout = QHBoxLayout()
         
@@ -188,8 +191,31 @@ class MainWindow(QMainWindow):
         # 添加到主布局
         main_layout.addWidget(left_panel, 0, Qt.AlignTop)
         main_layout.addWidget(right_panel, 1)
-        
-        central_widget.setLayout(main_layout)
+
+        root_layout.addLayout(main_layout)
+        central_widget.setLayout(root_layout)
+
+    def create_brand_header(self):
+        """创建顶部品牌信息栏"""
+        header = QFrame()
+        header.setFrameShape(QFrame.StyledPanel)
+        header.setStyleSheet(
+            "QFrame { background-color: #eef4fb; border: 1px solid #c7d7ea; border-radius: 6px; }"
+        )
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(14, 10, 14, 10)
+
+        title = QLabel("Philips CEST图像处理GUI工具")
+        title.setStyleSheet("QLabel { font-size: 20px; font-weight: bold; color: #113a67; }")
+
+        subtitle = QLabel("Developer: Xiaoxiao Zhang")
+        subtitle.setStyleSheet("QLabel { font-size: 12px; color: #365d87; }")
+
+        layout.addWidget(title)
+        layout.addWidget(subtitle)
+        header.setLayout(layout)
+        return header
     
     def create_data_import_panel(self, parent_layout):
         """创建数据导入面板"""
@@ -236,6 +262,17 @@ class MainWindow(QMainWindow):
         """创建预处理面板"""
         group = QGroupBox("2. 预处理选项")
         layout = QFormLayout()
+
+        # 局部PCA降噪
+        self.checkbox_pca = QCheckBox("启用局部PCA降噪")
+        self.checkbox_pca.setChecked(True)
+        layout.addRow(self.checkbox_pca)
+
+        self.spinbox_pca_radius = QSpinBox()
+        self.spinbox_pca_radius.setMinimum(1)
+        self.spinbox_pca_radius.setMaximum(3)
+        self.spinbox_pca_radius.setValue(1)
+        layout.addRow("PCA邻域半径:", self.spinbox_pca_radius)
         
         # 高斯平滑
         self.checkbox_smooth = QCheckBox("启用高斯平滑")
@@ -477,6 +514,14 @@ class MainWindow(QMainWindow):
         
         preprocessor = Preprocessing()
         processed_data = self.cest_data.copy()
+
+        if self.checkbox_pca.isChecked():
+            self.log_message("执行局部PCA降噪...")
+            processed_data = preprocessor.pca_denoise(
+                processed_data,
+                patch_radius=self.spinbox_pca_radius.value(),
+            )
+            self.log_message("局部PCA降噪完成")
         
         # 高斯平滑
         if self.checkbox_smooth.isChecked():
